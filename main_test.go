@@ -211,7 +211,7 @@ func TestHandleProbes(t *testing.T) {
 				Metrics:    ICMPMetrics,
 			},
 			JsonPayload: `{
-				"target": "1.1.1.1",
+				"target": "8.8.8.8",
 				"timeout": 5,
 				"icmp": {
 					"preferred_ip_protocol": "ip4",
