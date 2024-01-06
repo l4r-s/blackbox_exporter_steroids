@@ -16,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	io_prometheus_client "github.com/prometheus/client_model/go"
+	promConfig "github.com/prometheus/common/config"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
 )
@@ -30,8 +31,28 @@ type JSONICMPProbe struct {
 	TTL                 int    `json:"ttl,omitempty" yaml:"ttl,omitempty"`
 }
 
-type JSONProbeModule struct {
-	ICMP *JSONICMPProbe `json:"icmp,omitempty"`
+type JSONDNSRRValidator struct {
+	FailIfMatchesRegexp     []string `json:"fail_if_matches_regexp,omitempty" yaml:"fail_if_matches_regexp,omitempty"`
+	FailIfAllMatchRegexp    []string `json:"fail_if_all_match_regexp,omitempty" yaml:"fail_if_all_match_regexp,omitempty"`
+	FailIfNotMatchesRegexp  []string `json:"fail_if_not_matches_regexp,omitempty" yaml:"fail_if_not_matches_regexp,omitempty"`
+	FailIfNoneMatchesRegexp []string `json:"fail_if_none_matches_regexp,omitempty" yaml:"fail_if_none_matches_regexp,omitempty"`
+}
+
+type JSONDNSProbe struct {
+	IPProtocol         string               `json:"preferred_ip_protocol,omitempty" yaml:"preferred_ip_protocol,omitempty"`
+	IPProtocolFallback bool                 `json:"ip_protocol_fallback,omitempty" yaml:"ip_protocol_fallback,omitempty"`
+	DNSOverTLS         bool                 `json:"dns_over_tls,omitempty" yaml:"dns_over_tls,omitempty"`
+	TLSConfig          promConfig.TLSConfig `json:"tls_config,omitempty" yaml:"tls_config,omitempty"`
+	SourceIPAddress    string               `json:"source_ip_address,omitempty" yaml:"source_ip_address,omitempty"`
+	TransportProtocol  string               `json:"transport_protocol,omitempty" yaml:"transport_protocol,omitempty"`
+	QueryClass         string               `json:"query_class,omitempty" yaml:"query_class,omitempty"` // Defaults to IN.
+	QueryName          string               `json:"query_name,omitempty" yaml:"query_name,omitempty"`
+	QueryType          string               `json:"query_type,omitempty" yaml:"query_type,omitempty"`               // Defaults to ANY.
+	Recursion          bool                 `json:"recursion_desired,omitempty" yaml:"recursion_desired,omitempty"` // Defaults to true.
+	ValidRcodes        []string             `json:"valid_rcodes,omitempty" yaml:"valid_rcodes,omitempty"`           // Defaults to NOERROR.
+	ValidateAnswer     JSONDNSRRValidator   `json:"validate_answer_rrs,omitempty" yaml:"validate_answer_rrs,omitempty"`
+	ValidateAuthority  JSONDNSRRValidator   `json:"validate_authority_rrs,omitempty" yaml:"validate_authority_rrs,omitempty"`
+	ValidateAdditional JSONDNSRRValidator   `json:"validate_additional_rrs,omitempty" yaml:"validate_additional_rrs,omitempty"`
 }
 
 // ProbeRequest represents the JSON structure for incoming probe requests.
@@ -39,6 +60,7 @@ type ProbeRequest struct {
 	Target  string         `json:"target"`
 	Timeout time.Duration  `json:"timeout"`
 	ICMP    *JSONICMPProbe `json:"icmp,omitempty"`
+	DNS     *JSONDNSProbe  `json:"dns,omitempty"`
 	Debug   bool           `json:"debug"`
 }
 
@@ -118,6 +140,16 @@ func convertLabelsToMap(labels []*io_prometheus_client.LabelPair) map[string]str
 	return labelMap
 }
 
+// get Module
+func getModuleType(module ProbeRequest) string {
+	if module.ICMP != nil {
+		return "ICMP"
+	} else if module.DNS != nil {
+		return "DNS"
+	}
+	return "Unknown"
+}
+
 // handleProbe preparse the config.Module configuration fot the probe that gets executed
 func handleProbe(w http.ResponseWriter, r *http.Request) {
 	var req ProbeRequest
@@ -156,7 +188,8 @@ func handleProbe(w http.ResponseWriter, r *http.Request) {
 	// Set timeout
 	module.Timeout = time.Second * req.Timeout
 
-	results, err := executeProbe(req.Target, module, req.Debug)
+	probeType := getModuleType(req)
+	results, err := executeProbe(req.Target, module, probeType, req.Debug)
 	if err != nil {
 		http.Error(w, "Error executing probe: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -166,7 +199,7 @@ func handleProbe(w http.ResponseWriter, r *http.Request) {
 }
 
 // executeProbe executes the actuall probe
-func executeProbe(target string, module config.Module, debug bool) (ProbeResults, error) {
+func executeProbe(target string, module config.Module, probeType string, debug bool) (ProbeResults, error) {
 	registry := prometheus.NewRegistry()
 
 	// Use the custom buffer logger
@@ -176,15 +209,22 @@ func executeProbe(target string, module config.Module, debug bool) (ProbeResults
 	ctx, cancel := context.WithTimeout(context.Background(), module.Timeout)
 	defer cancel()
 
-	// Execute the ICMP probe
-	startTime := time.Now()
-	success := prober.ProbeICMP(ctx, target, module, registry, bufLogger)
-
 	// set probe_duration_seconds
 	probeDurationGauge := promauto.With(registry).NewGauge(prometheus.GaugeOpts{
 		Name: "probe_duration_seconds",
 		Help: "Returns how long the probe took to complete in seconds",
 	})
+	startTime := time.Now()
+
+	// Execute probe
+	var success bool
+	switch probeType {
+	case "ICMP":
+		success = prober.ProbeICMP(ctx, target, module, registry, bufLogger)
+	case "DNS":
+		success = prober.ProbeDNS(ctx, target, module, registry, bufLogger)
+	}
+
 	duration := time.Since(startTime).Seconds()
 	probeDurationGauge.Set(duration)
 
