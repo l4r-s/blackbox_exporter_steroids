@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	io_prometheus_client "github.com/prometheus/client_model/go"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
 )
 
@@ -222,8 +224,30 @@ func executeProbe(target string, module config.Module, debug bool) (ProbeResults
 	}, nil
 }
 
+// Auth
+func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get the Authorization header from the request
+		authHeader := r.Header.Get("Authorization")
+		expectedHash := os.Getenv("BLACKBOX_EXPORTER_AUTH")
+
+		if expectedHash != "disabled" {
+			// Compare the bcrypt hash of the provided token with the stored hash
+			err := bcrypt.CompareHashAndPassword([]byte(expectedHash), []byte(authHeader))
+			if err != nil {
+				// If they don't match, send an unauthorized response and return
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
+
+		// If authorized, call the next handler
+		next(w, r)
+	}
+}
+
 // Handle http requests
 func main() {
-	http.HandleFunc("/probe", handleProbe)
+	http.HandleFunc("/probe", authMiddleware(handleProbe))
 	http.ListenAndServe(":8080", nil)
 }
