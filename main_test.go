@@ -203,7 +203,7 @@ func TestHandleProbes(t *testing.T) {
 	testCases := []testCase{
 		// ICMPv4
 		{
-			Name: "Test IPv4 ICMP available",
+			Name: "IPv4 ICMP available",
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -221,7 +221,7 @@ func TestHandleProbes(t *testing.T) {
 			}`,
 		},
 		{
-			Name: "Test IPv4 ICMP available, no debug",
+			Name: "IPv4 ICMP available, no debug",
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -239,7 +239,7 @@ func TestHandleProbes(t *testing.T) {
 			}`,
 		},
 		{
-			Name: "Test IPv4 ICMP not available",
+			Name: "IPv4 ICMP not available",
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    false,
@@ -259,7 +259,7 @@ func TestHandleProbes(t *testing.T) {
 
 		// ICMPv6
 		{
-			Name: "Test IPv6 ICMP available",
+			Name: "IPv6 ICMP available",
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -277,7 +277,7 @@ func TestHandleProbes(t *testing.T) {
 			}`,
 		},
 		{
-			Name: "Test IPv6 ICMP not available",
+			Name: "IPv6 ICMP not available",
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    false,
@@ -297,7 +297,7 @@ func TestHandleProbes(t *testing.T) {
 
 		// DNS
 		{
-			Name: "Test DNS A record",
+			Name: "DNS A record",
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -311,6 +311,26 @@ func TestHandleProbes(t *testing.T) {
 					"preferred_ip_protocol": "ip4",
 					"query_name": "google.com",
 					"query_type": "A"
+				},
+				"debug": true
+			}`,
+		},
+
+		{
+			Name: "DNS AAAA record",
+			Expected: testCaseExpected{
+				StatusCode: http.StatusOK,
+				Success:    true,
+				LogsNil:    false,
+				Metrics:    DNSMetrics,
+			},
+			JsonPayload: `{
+				"target": "1.1.1.1",
+				"timeout": 2,
+				"dns": {
+					"preferred_ip_protocol": "ip6",
+					"query_name": "google.com",
+					"query_type": "AAAA"
 				},
 				"debug": true
 			}`,
