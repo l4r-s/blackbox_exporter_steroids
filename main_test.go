@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -35,7 +36,9 @@ type testCaseExpected struct {
 type testCase struct {
 	Name        string
 	JsonPayload string
-	Expected    testCaseExpected
+	// Ping may not work on Github Action (Azure): https://github.com/actions/runner-images/issues/1519#issuecomment-752644218
+	RunOnGithubAction bool
+	Expected          testCaseExpected
 }
 
 // intPtr helps create an *int from an int.
@@ -203,7 +206,8 @@ func TestHandleProbes(t *testing.T) {
 	testCases := []testCase{
 		// ICMPv4
 		{
-			Name: "IPv4 ICMP available",
+			Name:              "IPv4 ICMP available",
+			RunOnGithubAction: false,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -211,7 +215,7 @@ func TestHandleProbes(t *testing.T) {
 				Metrics:    ICMPMetrics,
 			},
 			JsonPayload: `{
-				"target": "8.8.8.8",
+				"target": "1.1.1.1",
 				"timeout": 5,
 				"icmp": {
 					"preferred_ip_protocol": "ip4",
@@ -221,7 +225,8 @@ func TestHandleProbes(t *testing.T) {
 			}`,
 		},
 		{
-			Name: "IPv4 ICMP available, no debug",
+			Name:              "IPv4 ICMP available, no debug",
+			RunOnGithubAction: false,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -239,7 +244,8 @@ func TestHandleProbes(t *testing.T) {
 			}`,
 		},
 		{
-			Name: "IPv4 ICMP not available",
+			Name:              "IPv4 ICMP not available",
+			RunOnGithubAction: false,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    false,
@@ -259,7 +265,8 @@ func TestHandleProbes(t *testing.T) {
 
 		// ICMPv6
 		{
-			Name: "IPv6 ICMP available",
+			Name:              "IPv6 ICMP available",
+			RunOnGithubAction: false,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -277,7 +284,8 @@ func TestHandleProbes(t *testing.T) {
 			}`,
 		},
 		{
-			Name: "IPv6 ICMP not available",
+			Name:              "IPv6 ICMP not available",
+			RunOnGithubAction: false,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    false,
@@ -297,7 +305,8 @@ func TestHandleProbes(t *testing.T) {
 
 		// DNS
 		{
-			Name: "DNS A record",
+			Name:              "DNS A record",
+			RunOnGithubAction: true,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -317,7 +326,8 @@ func TestHandleProbes(t *testing.T) {
 		},
 
 		{
-			Name: "DNS AAAA record",
+			Name:              "DNS AAAA record",
+			RunOnGithubAction: true,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -338,6 +348,11 @@ func TestHandleProbes(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		if os.Getenv("GITHUB_ACTIONS") == "true" && !tc.RunOnGithubAction {
+			t.Logf("Skipping test %s as it may not run on Github Actions (https://github.com/actions/runner-images/issues/1519#issuecomment-752644218)", tc.Name)
+			continue
+		}
+
 		t.Run(tc.Name, func(t *testing.T) {
 			// Create a new HTTP request with the JSON string as the body
 			req, err := http.NewRequest("POST", "/probe", strings.NewReader(tc.JsonPayload))
