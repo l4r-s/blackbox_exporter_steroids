@@ -207,7 +207,7 @@ func TestHandleProbes(t *testing.T) {
 		// ICMPv4
 		{
 			Name:              "IPv4 ICMP available",
-			RunOnGithubAction: false,
+			RunOnGithubAction: true,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -226,7 +226,7 @@ func TestHandleProbes(t *testing.T) {
 		},
 		{
 			Name:              "IPv4 ICMP available, no debug",
-			RunOnGithubAction: false,
+			RunOnGithubAction: true,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -245,7 +245,7 @@ func TestHandleProbes(t *testing.T) {
 		},
 		{
 			Name:              "IPv4 ICMP not available",
-			RunOnGithubAction: false,
+			RunOnGithubAction: true,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    false,
@@ -266,7 +266,7 @@ func TestHandleProbes(t *testing.T) {
 		// ICMPv6
 		{
 			Name:              "IPv6 ICMP available",
-			RunOnGithubAction: false,
+			RunOnGithubAction: true,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
@@ -285,7 +285,7 @@ func TestHandleProbes(t *testing.T) {
 		},
 		{
 			Name:              "IPv6 ICMP not available",
-			RunOnGithubAction: false,
+			RunOnGithubAction: true,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    false,
