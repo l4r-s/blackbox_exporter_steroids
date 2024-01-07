@@ -70,9 +70,9 @@ def generate_bcrypt_hash(secret):
 
     return hashed_secret.decode("utf-8")
 
-def deploy_gcloud_run_service(script_dir, region, logger):
+def deploy_gcloud_run_service(out_folder, region, logger):
     try:
-        command = ["gcloud", "run", "services", "replace", f"{script_dir}/out/{region}.yml"]
+        command = ["gcloud", "run", "services", "replace", f"{out_folder}/{region}.yml"]
         subprocess.run(command, check=True)
         logger.info(f"Deployed region {region}!")
 
@@ -98,6 +98,7 @@ def allow_all_ingress_gcloud_run_service(region, logger):
 
 
 def create_service_file(template_path, template_data, region, out_folder):
+    os.mkdir(out_folder)
     with open(template_path, 'r') as file:
         template_content = file.read()
 
@@ -128,10 +129,10 @@ def get_cloud_run_service_urls(logger):
         return {}
 
 def deploy_region(region_data):
-    script_dir, region, logger = region_data
+    script_dir, region, logger, out_folder = region_data
     logger.info(f"Working on {region}")
 
-    deploy_gcloud_run_service(script_dir, region, logger)
+    deploy_gcloud_run_service(out_folder, region, logger)
     allow_all_ingress_gcloud_run_service(region, logger)
 
 logger = logging.getLogger(__name__)
@@ -179,6 +180,7 @@ if __name__ == "__main__":
             region = r["name"]
             multi_region = r["multi_region"]
             repo_url = repo_urls[multi_region].rstrip("/")
+            out_folder = f"{script_dir}/out/"
 
             image = f"{repo_url}/{image_name}:{tag}"
             #logger.info(f"Working on {region}\n  repo_url: {repo_url}\n  image_url: {image}")
@@ -193,10 +195,10 @@ if __name__ == "__main__":
                 template_path = f"{script_dir}/template.yml",
                 template_data = template_data,
                 region = region,
-                out_folder = f"{script_dir}/out/"
+                out_folder = out_folder
             )
 
-            region_data_list.append((script_dir, region, logger))
+            region_data_list.append((script_dir, region, logger, out_folder))
 
 
         # Deploy in parallel
