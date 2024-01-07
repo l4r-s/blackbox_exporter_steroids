@@ -207,7 +207,7 @@ func TestHandleProbes(t *testing.T) {
 		// ICMPv4
 		{
 			Name:              "IPv4 ICMP available",
-			RunOnGithubAction: false,
+			RunOnGithubAction: true,
 			Expected: testCaseExpected{
 				StatusCode: http.StatusOK,
 				Success:    true,
