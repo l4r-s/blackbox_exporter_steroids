@@ -288,6 +288,19 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 // Handle http requests
 func main() {
+	stdLogger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
+	stdLogger = log.With(stdLogger, "ts", log.TimestampFormat(time.Now, time.RFC3339))
+	stdLogger = log.With(stdLogger, "caller", log.DefaultCaller)
+
+	httpPort := os.Getenv("HTTP_PORT")
+	if httpPort == "" {
+		httpPort = "8080"
+	}
+	stdLogger.Log("message", "Server started", "port", httpPort)
+	if os.Getenv("BLACKBOX_EXPORTER_AUTH") == "disabled" {
+		stdLogger.Log("message", "Authentication is disabled")
+	}
+
 	http.HandleFunc("/probe", authMiddleware(handleProbe))
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":"+httpPort, nil)
 }
