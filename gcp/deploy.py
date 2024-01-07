@@ -1,7 +1,9 @@
 
 import os
+import sys
 import json
 import bcrypt
+import argparse
 import subprocess
 import logging
 from jinja2 import Template
@@ -55,9 +57,6 @@ repo_urls = {
     "eu": "europe-docker.pkg.dev/pinginator-408420/eu"
 }
 
-auht_secret = "U3QwokM6DtnJ2Cbs6JRLqgzYQdAWdc"
-image_name = "blackbox-http"
-tag = "399c5cfada0f5b629ae6ded6b881133db5658e1b"
 
 def generate_bcrypt_hash(secret):
     # Convert the secret to bytes, if it's not already
@@ -142,40 +141,69 @@ logging.basicConfig(
 )
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Pinginator worker GCP deployment')
+
+    # Adding arguments
+    parser.add_argument('--deploy', action='store_true', help='Deploy on all regions')
+    parser.add_argument('--urls', action='store_true', help='Print JSON with urls')
+    parser.add_argument('--token', type=str, help='Token for auth against /probe (required when --deploy)')
+    parser.add_argument('--tag', type=str, help='Tag which should be deployed (required when --deploy)')
+    parser.add_argument('--image', type=str, help='Inage which should be deployed (defaults to blackbox-http)')
+
+    # Parsing arguments
+    args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    auth_token = args.token
+    tag = args.tag
+    image_name = "blackbox-http"
+    if args.image:
+        image_name = args.image
 
-    logger.info("Creating service files...")
-    region_data_list = []
-    for r in regions:
-        region = r["name"]
-        multi_region = r["multi_region"]
-        repo_url = repo_urls[multi_region].rstrip("/")
+    if args.deploy:
+        if not auth_token:
+            logger.error("--token is required!")
+            sys.exit(1)
 
-        image = f"{repo_url}/{image_name}:{tag}"
-        #logger.info(f"Working on {region}\n  repo_url: {repo_url}\n  image_url: {image}")
+        if not tag:
+            logger.error("--tag is required!")
+            sys.exit(1)
 
-        auth_token = generate_bcrypt_hash(auht_secret)
+        logger.info("Creating service files...")
+        region_data_list = []
+        for r in regions:
+            region = r["name"]
+            multi_region = r["multi_region"]
+            repo_url = repo_urls[multi_region].rstrip("/")
 
-        # cerate template
-        template_data = {
-            "region": region,
-            "image": image,
-            "auth_token": auth_token
-        }
-        create_service_file(
-            template_path = f"{script_dir}/template.yml",
-            template_data = template_data,
-            region = region,
-            out_folder = f"{script_dir}/out/"
-        )
+            image = f"{repo_url}/{image_name}:{tag}"
+            #logger.info(f"Working on {region}\n  repo_url: {repo_url}\n  image_url: {image}")
 
-        region_data_list.append((script_dir, region, logger))
+            # # cerate template
+            template_data = {
+                "region": region,
+                "image": image,
+                "auth_token": auth_token
+            }
+            create_service_file(
+                template_path = f"{script_dir}/template.yml",
+                template_data = template_data,
+                region = region,
+                out_folder = f"{script_dir}/out/"
+            )
+
+            region_data_list.append((script_dir, region, logger))
 
 
-    # Deploy in parallel
-    logger.info("Starting deployment...")
-    with ThreadPoolExecutor() as executor:
-        executor.map(deploy_region, region_data_list)
+        # Deploy in parallel
+        logger.info("Starting deployment...")
+        with ThreadPoolExecutor() as executor:
+            executor.map(deploy_region, region_data_list)
 
-    urls = get_cloud_run_service_urls(logger=logger)
-    print(json.dumps(urls, indent=2))
+    if args.urls:
+        urls = get_cloud_run_service_urls(logger=logger)
+        print(json.dumps(urls, indent=2))
