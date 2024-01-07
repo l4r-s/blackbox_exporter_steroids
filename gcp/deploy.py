@@ -58,6 +58,12 @@ repo_urls = {
 }
 
 
+def create_directory(path):
+    try:
+        os.mkdir(path)
+    except FileExistsError:
+        pass
+
 def generate_bcrypt_hash(secret):
     # Convert the secret to bytes, if it's not already
     secret_bytes = secret.encode('utf-8')
@@ -98,7 +104,7 @@ def allow_all_ingress_gcloud_run_service(region, logger):
 
 
 def create_service_file(template_path, template_data, region, out_folder):
-    os.mkdir(out_folder)
+    create_directory(out_folder)
     with open(template_path, 'r') as file:
         template_content = file.read()
 
