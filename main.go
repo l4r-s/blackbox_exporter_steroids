@@ -292,7 +292,7 @@ func main() {
 	stdLogger = log.With(stdLogger, "ts", log.TimestampFormat(time.Now, time.RFC3339))
 	stdLogger = log.With(stdLogger, "caller", log.DefaultCaller)
 
-	httpPort := os.Getenv("HTTP_PORT")
+	httpPort := os.Getenv("BLACKBOX_EXPORTER_HTTP_PORT")
 	if httpPort == "" {
 		httpPort = "8080"
 	}
