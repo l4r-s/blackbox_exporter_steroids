@@ -151,11 +151,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Pinginator worker GCP deployment')
 
     # Adding arguments
-    parser.add_argument('--deploy', action='store_true', help='Deploy on all regions')
+    parser.add_argument('--deploy', action='store_true', help='Deploys on all regions without --location set')
     parser.add_argument('--urls', action='store_true', help='Print JSON with urls')
     parser.add_argument('--token', type=str, help='Token for auth against /probe (required when --deploy)')
     parser.add_argument('--tag', type=str, help='Tag which should be deployed (required when --deploy)')
     parser.add_argument('--image', type=str, help='Inage which should be deployed (defaults to blackbox-http)')
+    parser.add_argument('--location', type=str, help='Specify single location to deploy')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -188,6 +189,10 @@ if __name__ == "__main__":
             repo_url = repo_urls[multi_region].rstrip("/")
             out_folder = f"{script_dir}/out/"
 
+            if args.location:
+                if args.location != region:
+                    continue
+
             image = f"{repo_url}/{image_name}:{tag}"
             #logger.info(f"Working on {region}\n  repo_url: {repo_url}\n  image_url: {image}")
 
@@ -207,6 +212,8 @@ if __name__ == "__main__":
             region_data_list.append((script_dir, region, logger, out_folder))
 
 
+        print(region_data_list)
+        print(args.location)
         # Deploy in parallel
         logger.info("Starting deployment...")
         with ThreadPoolExecutor() as executor:
