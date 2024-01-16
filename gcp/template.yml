@@ -21,6 +21,7 @@ spec:
         autoscaling.knative.dev/maxScale: '4'
         run.googleapis.com/startup-cpu-boost: 'false'
     spec:
+      serviceAccountName: worker@pinginator-408420.iam.gserviceaccount.com
       containerConcurrency: 200
       timeoutSeconds: 30
       containers:
