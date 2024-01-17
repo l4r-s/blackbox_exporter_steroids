@@ -20,6 +20,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// version
+// use go build -ldflags="-X main.version=$(git describe --tags)" main.go
+var version string = "dev"
+
 // Structs
 type JSONICMPProbe struct {
 	PreferredIPProtocol string `json:"preferred_ip_protocol,omitempty" yaml:"preferred_ip_protocol,omitempty"`
@@ -73,6 +77,11 @@ type ProbeResults struct {
 type bufferLogger struct {
 	logs   []string
 	logger log.Logger
+}
+
+type StatusReturn struct {
+	Version string `json:"version"`
+	Ready   bool   `json:"ready"`
 }
 
 // Custom logger to return logs as JSON  array
@@ -280,6 +289,15 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// handleStatus gives back the probe status and version
+func handleStatus(w http.ResponseWriter, r *http.Request) {
+	result := StatusReturn{
+		Version: version,
+		Ready:   true,
+	}
+	json.NewEncoder(w).Encode(result)
+}
+
 // Handle http requests
 func main() {
 	stdLogger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
@@ -295,6 +313,7 @@ func main() {
 		stdLogger.Log("message", "Authentication is disabled")
 	}
 
+	http.HandleFunc("/status", authMiddleware(handleStatus))
 	http.HandleFunc("/probe", authMiddleware(handleProbe))
 	http.ListenAndServe(":"+httpPort, nil)
 }

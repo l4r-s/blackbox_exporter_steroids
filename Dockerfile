@@ -1,12 +1,13 @@
 FROM golang:1.20-bookworm as builder
-WORKDIR /app
+ARG VERSION="docker-latest"
 
+WORKDIR /app
 COPY . .
 RUN go mod download
 
 # Build the application as a static binary
 # CGO_ENABLED=0 disables CGO, and -ldflags '-extldflags "-static"' tells the linker to produce a static binary
-RUN CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -o blackbox_http
+RUN CGO_ENABLED=0 go build -ldflags "-extldflags \"-static\" -X main.version=$VERSION" -o blackbox_http
 
 # Start a new stage from scratch
 FROM scratch
