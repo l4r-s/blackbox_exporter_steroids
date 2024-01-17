@@ -23,7 +23,6 @@ Authentication can be disabled with:
 export BLACKBOX_EXPORTER_AUTH='disabled'
 ```
 
-
 ## Examples
 
 ### ICMP
