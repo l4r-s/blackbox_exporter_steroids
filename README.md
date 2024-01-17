@@ -146,3 +146,9 @@ curl -s -X POST http://localhost:8080/probe -d '{"target": "1.1.1.1", "icmp": { 
   ]
 }
 ```
+
+## Deployment
+
+### GCP
+
+GCP is deployed with the `gcp/deploy.py` script. It uses the `gcloud` command. TODO: rewrite to k8s.
