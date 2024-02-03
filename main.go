@@ -326,9 +326,7 @@ func awslambda(stdLogger log.Logger) {
 	stdLogger.Log("message", "Running in Lambda")
 	http.HandleFunc("/status", authMiddleware(handleStatus))
 	http.HandleFunc("/probe", authMiddleware(handleProbe))
-
 	http.HandleFunc("/default/status", handleStatus)
-	http.HandleFunc("/", handleStatus)
 
 	// Catch-all route for logging and returning a 404
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
