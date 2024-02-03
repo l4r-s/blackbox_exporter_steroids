@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	"github.com/go-kit/log"
 	"github.com/prometheus/blackbox_exporter/config"
 	"github.com/prometheus/blackbox_exporter/prober"
@@ -299,21 +301,45 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handle http requests
-func main() {
-	stdLogger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
-	stdLogger = log.With(stdLogger, "ts", log.TimestampFormat(time.Now, time.RFC3339))
-	stdLogger = log.With(stdLogger, "caller", log.DefaultCaller)
-
+func webserver(stdLogger log.Logger) {
+	stdLogger.Log("message", "Running webserver")
 	httpPort := os.Getenv("BLACKBOX_EXPORTER_HTTP_PORT")
 	if httpPort == "" {
 		httpPort = "8080"
 	}
 	stdLogger.Log("message", "Server started", "port", httpPort)
-	if os.Getenv("BLACKBOX_EXPORTER_AUTH") == "disabled" {
-		stdLogger.Log("message", "Authentication is disabled")
-	}
 
 	http.HandleFunc("/status", authMiddleware(handleStatus))
 	http.HandleFunc("/probe", authMiddleware(handleProbe))
 	http.ListenAndServe(":"+httpPort, nil)
+}
+
+func awslambda(stdLogger log.Logger) {
+	stdLogger.Log("message", "Running in Lambda")
+	http.HandleFunc("/status", authMiddleware(handleStatus))
+	http.HandleFunc("/probe", authMiddleware(handleProbe))
+
+	adapter := httpadapter.New(http.DefaultServeMux)
+	lambda.Start(adapter.ProxyWithContext)
+}
+
+func isRunningInLambda() bool {
+	functionName := os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
+	return functionName != ""
+}
+
+func main() {
+	stdLogger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
+	stdLogger = log.With(stdLogger, "ts", log.TimestampFormat(time.Now, time.RFC3339))
+	stdLogger = log.With(stdLogger, "caller", log.DefaultCaller)
+
+	if os.Getenv("BLACKBOX_EXPORTER_AUTH") == "disabled" {
+		stdLogger.Log("message", "Authentication is disabled")
+	}
+
+	if isRunningInLambda() {
+		awslambda(stdLogger)
+	} else {
+		webserver(stdLogger)
+	}
 }
