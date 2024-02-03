@@ -324,16 +324,20 @@ func webserver(stdLogger log.Logger) {
 
 func awslambda(stdLogger log.Logger) {
 	stdLogger.Log("message", "Running in Lambda")
-	http.HandleFunc("/status", authMiddleware(handleStatus))
-	http.HandleFunc("/probe", authMiddleware(handleProbe))
-	http.HandleFunc("/default/status", handleStatus)
+	// http.HandleFunc("/status", authMiddleware(handleStatus))
+	// http.HandleFunc("/probe", authMiddleware(handleProbe))
+	// http.HandleFunc("/default/status", handleStatus)
 
-	// Catch-all route for logging and returning a 404
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		stdLogger.Log("error", "Page not found", "path", r.URL.Path)
-		http.NotFound(w, r)
-		return
-	})
+	// Lambda go proxy seams to have problems with multiple pahts
+	// the path passed to the code is always / with lambda function url
+	http.HandleFunc("/", authMiddleware(handleProbe))
+
+	// // Catch-all route for logging and returning a 404
+	// http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// 	stdLogger.Log("error", "Page not found", "path", r.URL.Path)
+	// 	http.NotFound(w, r)
+	// 	return
+	// })
 
 	adapter := httpadapter.New(http.DefaultServeMux)
 	lambda.Start(adapter.ProxyWithContext)
