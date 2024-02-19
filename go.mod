@@ -3,14 +3,11 @@ module worker-go
 go 1.20
 
 require (
+	github.com/aws/aws-lambda-go v1.41.0
+	github.com/awslabs/aws-lambda-go-api-proxy v0.16.1
 	github.com/go-kit/log v0.2.1
 	github.com/prometheus/blackbox_exporter v0.24.0
 	github.com/prometheus/client_golang v1.18.0
-)
-
-require (
-	github.com/aws/aws-lambda-go v1.41.0 // indirect
-	github.com/awslabs/aws-lambda-go-api-proxy v0.16.1 // indirect
 )
 
 require (
@@ -23,7 +20,7 @@ require (
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
-	github.com/prometheus/client_model v0.5.0
+	github.com/prometheus/client_model v0.6.0
 	github.com/prometheus/common v0.46.0
 	github.com/prometheus/procfs v0.12.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
