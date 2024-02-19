@@ -21,7 +21,7 @@ require (
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/prometheus/client_model v0.6.0
-	github.com/prometheus/common v0.46.0
+	github.com/prometheus/common v0.47.0
 	github.com/prometheus/procfs v0.12.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
