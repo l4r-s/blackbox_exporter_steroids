@@ -1,7 +1,19 @@
-# Blackbox exporter HTTP JSON wrapper
+# Blackbox exporter on steriods
 
+[Prometheus Blackbox Exporter](https://github.com/prometheus/blackbox_exporter) on steriods adds this functionality to the blackbox exporter:
 
-This project wrapps the awesome [Prometheus Blackbox Exporter](https://github.com/prometheus/blackbox_exporter) as a http json websever.
+- json response
+- dynamic module/probe configuration in the context of a request (no need for modules configuration in yaml files)
+- run as AWS lambda function
+- very basic Authenctiaction mechanism
+
+## Module Implementation state
+
+- [x] icmp
+- [x] dns
+- [ ] tcp
+- [ ] http
+- [ ] grpc
 
 ## Start
 
@@ -146,9 +158,3 @@ curl -s -X POST http://localhost:8080/probe -d '{"target": "1.1.1.1", "icmp": { 
   ]
 }
 ```
-
-## Deployment
-
-### GCP
-
-GCP is deployed with the `gcp/deploy.py` script. It uses the `gcloud` command. TODO: rewrite to k8s.
