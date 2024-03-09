@@ -1,0 +1,18 @@
+name: Testing
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  test:
+    name: Run Go Test
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        run: docker run -e GITHUB_ACTIONS="true" -v $(pwd):/app -w /app golang:1.20-bookworm  go test -v
